@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Global Flappy Mobile</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; display: flex; justify-content: center; align-items: center; }
+        #gameContainer { position: relative; width: 100%; height: 100%; max-width: 450px; max-height: 850px; aspect-ratio: 9/16; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        canvas { width: 100%; height: 100%; display: block; background: #4ec0ca; }
+        
+        /* UI Overlays */
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); color: white; padding: 20px; text-align: center; }
+        .hidden { display: none !important; }
+        h1 { font-size: 2.5rem; margin-bottom: 20px; text-shadow: 2px 2px #000; color: #f4d03f; }
+        button { background: #e67e22; border: none; padding: 12px 28px; font-size: 1.2rem; color: white; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px #d35400; margin: 8px; }
+        button:active { transform: translateY(4px); box-shadow: 0 0 #d35400; }
+        
+        /* Leaderboard Style */
+        .leaderboard-box { background: rgba(0,0,0,0.75); border: 3px solid #f39c12; border-radius: 12px; width: 90%; max-height: 50%; overflow-y: auto; margin: 15px 0; padding: 10px; }
+        .score-row { display: flex; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid #444; font-size: 1.1rem; }
+        .score-row.top-three { color: #f1c40f; font-weight: bold; }
+        input[type="text"] { padding: 10px; font-size: 1.1rem; border-radius: 6px; border: none; text-align: center; width: 80%; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="gameContainer">
+    <canvas id="ctxCanvas"></canvas>
+
+    <!-- Main Menu Screen -->
+    <div id="menuScreen" class="overlay">
+        <h1>FLAPPY GLOBAL</h1>
+        <button id="playBtn">TAP TO PLAY</button>
+        <div class="leaderboard-box" id="menuLeaderboard">Loading World Scores...</div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOverScreen" class="overlay hidden">
+        <h1>GAME OVER</h1>
+        <h2 id="finalScore" style="font-size: 1.8rem; margin-bottom: 15px;">Score: 0</h2>
+        
+        <div id="submitSection">
+            <input type="text" id="playerName" placeholder="Enter Nickname" maxlength="10">
+            <button id="submitBtn">SUBMIT SCORE</button>
+        </div>
+        
+        <div class="leaderboard-box" id="overLeaderboard">Loading...</div>
+        <button id="restartBtn">PLAY AGAIN</button>
+    </div>
+</div>
+
+<script>
+// --- WORLDWIDE LEADERBOARD CONFIG ---
+// Powered by JSONBin.io Free Tier API (Simulated tracking endpoint setup)
+const LEADERBOARD_API = 'jsonbin.io'; 
+const API_KEY = '$2a$10$9GvFhXkZ8e.2Qp9NBy8Nbe6dDlzxM66mF8p7gKxlmFh4t1Z5rGvIq'; // Use dummy headers or public endpoints for open web systems
+let localScores = [
+    {name: "SkyBird", score: 42}, {name: "ChirpMaster", score: 28}, {name: "WingIt", score: 15}
+];
+
+// --- GRAPHICS ASSETS ---
+// Replace placeholders with URLs to your PNG paths
+const birdSprite = new Image();
+birdSprite.src = 'imgur.com'; // Fallback sample flappy asset
+
+const pipeTopSprite = new Image();
+pipeTopSprite.src = 'imgur.com'; // Fallback top pipe asset
+
+const pipeBottomSprite = new Image();
+pipeBottomSprite.src = 'imgur.com'; // Fallback bottom pipe asset
+
+// --- GAME CONFIG & ENGINE ---
+const canvas = document.getElementById('ctxCanvas');
+const ctx = canvas.getContext('2d');
+
+let scaleFactor = 1;
+const baseWidth = 360;
+const baseHeight = 640;
+
+// Dynamic States
+let bird, pipes, frameCount, currentScore, gameRunning, currentMode;
+
+function resizeCanvas() {
+    const container = document.getElementById('gameContainer');
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+    scaleFactor = canvas.width / baseWidth;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+class Bird {
+    constructor() {
+        this.x = 60 * scaleFactor;
+        this.y = (baseHeight / 2) * scaleFactor;
+        this.radius = 14 * scaleFactor;
+        this.velocity = 0;
+        this.gravity = 0.35 * scaleFactor;
+        this.jumpForce = -6.5 * scaleFactor;
+    }
+    update() {
+        this.velocity += this.gravity;
+        this.y += this.velocity;
+        
+        // Ceiling & Floor containment
+        if (this.y < this.radius) { this.y = this.radius; this.velocity = 0; }
+        if (this.y > canvas.height - this.radius) triggerGameOver();
+    }
+    draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        // Tilt animation based on velocity
+        let rotation = Math.min(Math.max(this.velocity / 12, -0.4), 0.7);
+        ctx.rotate(rotation);
+        
+        if (birdSprite.complete && birdSprite.naturalWidth !== 0) {
+            ctx.drawImage(birdSprite, -this.radius*1.5, -this.radius*1.5, this.radius*3, this.radius*3);
+        } else {
+            ctx.fillStyle = '#f1c40f';
+            ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+    }
+    flap() { this.velocity = this.jumpForce; }
+}
+
+class PipePair {
+    constructor() {
+        this.width = 56 * scaleFactor;
+        this.gap = 135 * scaleFactor;
+        this.x = canvas.width;
+        this.speed = 2.5 * scaleFactor;
+        this.passed = false;
+        
+        const minHeight = 60 * scaleFactor;
+        const maxHeight = canvas.height - this.gap - minHeight;
+        this.topHeight = Math.random() * (maxHeight - minHeight) + minHeight;
+    }
+    update() {
+        this.x -= this.speed;
+    }
+    draw() {
+        // Top Pipe
+        if (pipeTopSprite.complete && pipeTopSprite.naturalWidth !== 0) {
+            ctx.drawImage(pipeTopSprite, this.x, 0, this.width, this.topHeight);
+        } else {
+            ctx.fillStyle = '#27ae60'; ctx.fillRect(this.x, 0, this.width, this.topHeight);
+        }
+        
+        // Bottom Pipe
+        let bottomY = this.topHeight + this.gap;
+        let bottomH = canvas.height - bottomY;
+        if (pipeBottomSprite.complete && pipeBottomSprite.naturalWidth !== 0) {
+            ctx.drawImage(pipeBottomSprite, this.x, bottomY, this.width, bottomH);
+        } else {
+            ctx.fillStyle = '#27ae60'; ctx.fillRect(this.x, bottomY, this.width, bottomH);
+        }
+    }
+    collidesWith(b) {
+        if (b.x + b.radius > this.x && b.x - b.radius < this.x + this.width) {
+            if (b.y - b.radius < this.topHeight || b.y + b.radius > this.topHeight + this.gap) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+// --- GAME LOOP & OPERATIONS ---
+function initGame() {
+    bird = new Bird();
+    pipes = [];
+    frameCount = 0;
+    currentScore = 0;
+    gameRunning = true;
+    document.getElementById('menuScreen').classList.add('hidden');
+    document.getElementById('gameOverScreen').classList.add('hidden');
+}
+
+function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw solid scrolling stylized background elements if PNG textures don't resolve
+    ctx.fillStyle = '#4ec0ca'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    if (gameRunning) {
+        frameCount++;
+        if (frameCount % 90 === 0) pipes.push(new PipePair());
+        
+        bird.update();
+        
+        for (let i = pipes.length - 1; i >= 0; i--) {
+            pipes[i].update();
+            pipes[i].draw();
+            
+            if (pipes[i].collidesWith(bird)) triggerGameOver();
+            
+            if (!pipes[i].passed && pipes[i].x + pipes[i].width < bird.x) {
+                pipes[i].passed = true;
+                currentScore++;
+            }
+            if (pipes[i].x + pipes[i].width < 0) pipes.splice(i, 1);
+        }
+        
+        bird.draw();
+        
+        // Live Hud Score Display
+        ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
+        ctx.font = `bold ${32 * scaleFactor}px sans-serif`; ctx.textAlign = 'center';
+        ctx.strokeText(currentScore, canvas.width / 2, 60 * scaleFactor);
+        ctx.fillText(currentScore, canvas.width / 2, 60 * scaleFactor);
+        
+        requestAnimationFrame(gameLoop);
+    }
+}
+
+function triggerGameOver() {
+    gameRunning = false;
+    document.getElementById('finalScore').innerText = `Score: ${currentScore}`;
+    document.getElementById('submitSection').classList.remove('hidden');
+    document.getElementById('gameOverScreen').classList.remove('hidden');
+    renderLeaderboardDisplay('overLeaderboard');
+}
+
+// --- WORLDWIDE LEADERBOARD SYSTEM ---
+async function fetchGlobalScores() {
+    try {
+        // Public mock storage engine used to bypass backend overhead server deployments
+        const response = await fetch(LEADERBOARD_API, {
+            headers: { 'X-Master-Key': API_KEY }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            localScores = data.record.scores || localScores;
+        }
+    } catch (err) {
+        console.warn("Leaderboard cloud offline. Defaulting local session sync storage.");
+    }
+    renderLeaderboardDisplay('menuLeaderboard');
+    renderLeaderboardDisplay('overLeaderboard');
+}
+
+async function submitGlobalScore() {
+    const nameInput = document.getElementById('playerName').value.trim();
+    if (!nameInput) return alert('Enter a valid nickname!');
+    
+    localScores.push({ name: nameInput, score: currentScore });
+    localScores.sort((a, b) => b.score - a.score);
+    localScores = localScores.slice(0, 10); // Clamp to top 10 positions
+    
+    document.getElementById('submitSection').classList.add('hidden');
+    renderLeaderboardDisplay('overLeaderboard');
+
+    try {
+        await fetch(LEADERBOARD_API, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+            body: JSON.stringify({ scores: localScores })
+        });
+    } catch (e) { console.error("Could not sync online ledger database context entry.", e); }
+}
+
+function renderLeaderboardDisplay(elementId) {
+    const box = document.getElementById(elementId);
+    if (!box) return;
+    box.innerHTML = '<h3 style="margin-bottom:8px; color:#e74c3c;">WORLD RANKINGS</h3>';
+    localScores.forEach((item, index) => {
+        const isTop = index < 3 ? 'top-three' : '';
+        box.innerHTML += `
+            <div class="score-row ${isTop}">
+                <span>${index + 1}. ${item.name}</span>
+                <span>${item.score} pts</span>
+            </div>`;
+    });
+}
+
+// --- INTERACTIVE MOBILE TRIGGERS ---
+const handleActionInput = (e) => {
+    e.preventDefault();
+    if (gameRunning) bird.flap();
+};
+
+canvas.addEventListener('touchstart', handleActionInput, { passive: false });
+canvas.addEventListener('mousedown', handleActionInput);
+
+document.getElementById('playBtn').addEventListener('click', () => { initGame(); gameLoop(); });
+document.getElementById('restartBtn').addEventListener('click', () => { initGame(); gameLoop(); });
+document.getElementById('submitBtn').addEventListener('click', submitGlobalScore);
+
+// Run Ledger Database Processing Engine on Initialize
+fetchGlobalScores();
+</script>
+</body>
+</html>
