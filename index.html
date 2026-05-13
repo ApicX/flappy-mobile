@@ -1,27 +1,76 @@
 <!DOCTYPE html>
 <html>
+
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+
   <title>Flappy Mobile</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<div id="menuPanel">
-  <h1>FLAPPY MOBILE</h1>
+  <!-- MENU -->
+  <div id="menu">
 
-  <button onclick="startGame()">Play</button>
-  <button onclick="openShop()">Shop</button>
-  <button onclick="openLeaderboard()">Leaderboard</button>
-</div>
+    <h1>FLAPPY MOBILE</h1>
 
-<canvas id="gameCanvas"></canvas>
+    <button onclick="startGame()">PLAY</button>
 
-<div id="scorePanel">
-  Score: <span id="score">0</span>
-</div>
+    <button onclick="openShop()">SHOP</button>
 
-<script src="game.js"></script>
+    <button onclick="openLeaderboard()">LEADERBOARD</button>
+
+    <div id="coinText">
+      Coins: <span id="coins">0</span>
+    </div>
+
+  </div>
+
+  <!-- SHOP -->
+  <div id="shop">
+
+    <h2>SHOP</h2>
+
+    <button onclick="selectCharacter('yellow')">
+      Yellow Bird
+    </button>
+
+    <button onclick="selectCharacter('red')">
+      Red Bird
+    </button>
+
+    <button onclick="closeShop()">
+      Back
+    </button>
+
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div id="leaderboard">
+
+    <h2>TOP SCORES</h2>
+
+    <ul id="leaderboardList"></ul>
+
+    <button onclick="closeLeaderboard()">
+      Back
+    </button>
+
+  </div>
+
+  <!-- SCORE -->
+  <div id="scoreText">
+    0
+  </div>
+
+  <!-- GAME -->
+  <canvas id="gameCanvas"></canvas>
+
+  <script src="game.js"></script>
+
 </body>
+
 </html>
