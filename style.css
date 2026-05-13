@@ -1,1 +1,34 @@
+body{
+  margin:0;
+  background:black;
+  overflow:hidden;
+  font-family:Arial;
+}
 
+canvas{
+  display:none;
+  background:#70c5ce;
+}
+
+#menuPanel{
+  text-align:center;
+  margin-top:100px;
+  color:white;
+}
+
+button{
+  padding:15px;
+  margin:10px;
+  font-size:20px;
+  border:none;
+  border-radius:10px;
+}
+
+#scorePanel{
+  position:absolute;
+  top:20px;
+  left:20px;
+  color:white;
+  font-size:30px;
+  display:none;
+}
