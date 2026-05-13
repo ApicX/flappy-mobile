@@ -1,1 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Flappy Mobile</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="menuPanel">
+  <h1>FLAPPY MOBILE</h1>
+
+  <button onclick="startGame()">Play</button>
+  <button onclick="openShop()">Shop</button>
+  <button onclick="openLeaderboard()">Leaderboard</button>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="scorePanel">
+  Score: <span id="score">0</span>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
