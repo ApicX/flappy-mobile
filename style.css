@@ -1,34 +1,77 @@
-body{
-  margin:0;
-  background:black;
-  overflow:hidden;
-  font-family:Arial;
+body {
+
+  margin: 0;
+  overflow: hidden;
+  background: #70c5ce;
+  font-family: Arial;
+  text-align: center;
+
 }
 
-canvas{
-  display:none;
-  background:#70c5ce;
+canvas {
+
+  display: none;
+
 }
 
-#menuPanel{
-  text-align:center;
-  margin-top:100px;
-  color:white;
+#menu,
+#shop,
+#leaderboard {
+
+  position: absolute;
+  width: 100%;
+  top: 100px;
+
 }
 
-button{
-  padding:15px;
-  margin:10px;
-  font-size:20px;
-  border:none;
-  border-radius:10px;
+#shop,
+#leaderboard {
+
+  display: none;
+
 }
 
-#scorePanel{
-  position:absolute;
-  top:20px;
-  left:20px;
-  color:white;
-  font-size:30px;
-  display:none;
+button {
+
+  display: block;
+  margin: 15px auto;
+  padding: 15px 30px;
+  border: none;
+  border-radius: 10px;
+  font-size: 20px;
+
+}
+
+h1 {
+
+  color: white;
+  font-size: 45px;
+
+}
+
+#scoreText {
+
+  position: absolute;
+  top: 20px;
+  width: 100%;
+  font-size: 50px;
+  color: white;
+  display: none;
+
+}
+
+#coinText {
+
+  color: white;
+  font-size: 25px;
+
+}
+
+ul {
+
+  list-style: none;
+  padding: 0;
+  color: white;
+  font-size: 25px;
+
 }
